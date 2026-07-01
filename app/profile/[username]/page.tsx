@@ -1,22 +1,65 @@
 'use client'
 
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Loader2, Grid3x3 } from 'lucide-react'
-import { postsApi, usersApi, type Post } from '@/lib/api'
+import { postsApi, relationsApi, usersApi, type Post } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
 
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>()
   const currentUser = useAuthStore((s) => s.user)
+  const queryClient = useQueryClient()
 
   const { data: profile, status: profileStatus } = useQuery({
     queryKey: ['profile', username],
     queryFn: () => usersApi.getProfile(username),
     select: (res) => res.data,
+  })
+
+  const isOwnProfile = currentUser?.username === profile?.username
+
+  const { data: counts } = useQuery({
+    queryKey: ['followCounts', profile?.id],
+    queryFn: () => relationsApi.counts(profile!.id),
+    select: (res) => res.data,
+    enabled: !!profile?.id,
+  })
+
+  const { data: followStatus } = useQuery({
+    queryKey: ['followStatus', profile?.id],
+    queryFn: () => relationsApi.status(profile!.id),
+    select: (res) => res.data.following,
+    enabled: !!profile?.id && !!currentUser && !isOwnProfile,
+  })
+
+  const { data: postCount } = useQuery({
+    queryKey: ['postCount', profile?.id],
+    queryFn: () => postsApi.countByUser(profile!.id),
+    select: (res) => res.data.count,
+    enabled: !!profile?.id,
+  })
+
+  const invalidateFollowData = () => {
+    queryClient.invalidateQueries({ queryKey: ['followCounts', profile?.id] })
+    queryClient.invalidateQueries({ queryKey: ['followStatus', profile?.id] })
+    // The feed reads the *current* user's following list, not the profile being viewed —
+    // without this, following/unfollowing someone wouldn't show up in your feed until the
+    // 30s query staleTime happened to lapse on its own.
+    queryClient.invalidateQueries({ queryKey: ['following', currentUser?.id] })
+  }
+
+  const followMutation = useMutation({
+    mutationFn: () => relationsApi.follow(profile!.id),
+    onSuccess: invalidateFollowData,
+  })
+
+  const unfollowMutation = useMutation({
+    mutationFn: () => relationsApi.unfollow(profile!.id),
+    onSuccess: invalidateFollowData,
   })
 
   const { data: postsData, status: postsStatus } = useInfiniteQuery({
@@ -64,23 +107,43 @@ export default function ProfilePage() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold">{profile.username}</h1>
-            {currentUser?.username === profile.username && (
+            {isOwnProfile ? (
               <Button variant="outline" size="sm" asChild>
                 <Link href="/profile/edit">Edit profile</Link>
               </Button>
+            ) : (
+              currentUser &&
+              (followStatus ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={unfollowMutation.isPending}
+                  onClick={() => unfollowMutation.mutate()}
+                >
+                  Following
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  disabled={followMutation.isPending}
+                  onClick={() => followMutation.mutate()}
+                >
+                  Follow
+                </Button>
+              ))
             )}
           </div>
           {profile.bio && <p className="mt-1 text-sm text-zinc-600">{profile.bio}</p>}
           <div className="mt-3 flex gap-6 text-sm">
             <span>
-              <strong>{profile.post_count}</strong> posts
+              <strong>{postCount ?? profile.post_count}</strong> posts
             </span>
-            <span>
-              <strong>{profile.follower_count}</strong> followers
-            </span>
-            <span>
-              <strong>{profile.following_count}</strong> following
-            </span>
+            <Link href={`/profile/${profile.username}/followers`} className="hover:underline">
+              <strong>{counts?.followers ?? profile.follower_count}</strong> followers
+            </Link>
+            <Link href={`/profile/${profile.username}/following`} className="hover:underline">
+              <strong>{counts?.following ?? profile.following_count}</strong> following
+            </Link>
           </div>
         </div>
       </div>

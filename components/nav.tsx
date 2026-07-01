@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Camera, Home, PlusSquare, Search, LogOut, User, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import { authApi, usersApi } from '@/lib/api'
@@ -14,6 +14,7 @@ export function Nav() {
   const { user, isAuthenticated, logout, refreshToken } = useAuthStore()
   const router = useRouter()
   const pathname = usePathname()
+  const queryClient = useQueryClient()
 
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
@@ -60,6 +61,9 @@ export function Nav() {
       await authApi.logout(refreshToken).catch(() => {})
     }
     logout()
+    // The QueryClient survives client-side navigation, so without this a new user
+    // logging in on the same tab would see the previous user's cached like/follow state.
+    queryClient.clear()
     router.push('/login')
   }
 

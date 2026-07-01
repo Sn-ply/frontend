@@ -64,6 +64,32 @@ export const usersApi = {
     api.get<PaginatedResponse<PublicProfile>>('/api/v1/users/search', {
       params: { q, cursor, limit: 8 },
     }),
+
+  batch: (ids: string[]) =>
+    api.post<PublicProfile[]>('/api/v1/users/batch', { ids }),
+}
+
+// Relations (follow graph)
+export const relationsApi = {
+  follow: (userId: string) => api.post(`/api/v1/relations/${userId}/follow`),
+
+  unfollow: (userId: string) => api.delete(`/api/v1/relations/${userId}/follow`),
+
+  status: (userId: string) =>
+    api.get<{ following: boolean }>(`/api/v1/relations/${userId}/status`),
+
+  counts: (userId: string) =>
+    api.get<{ followers: number; following: number }>(`/api/v1/relations/${userId}/counts`),
+
+  followers: (userId: string, cursor?: string) =>
+    api.get<PaginatedResponse<string>>(`/api/v1/relations/${userId}/followers`, {
+      params: { cursor, limit: 50 },
+    }),
+
+  following: (userId: string, cursor?: string) =>
+    api.get<PaginatedResponse<string>>(`/api/v1/relations/${userId}/following`, {
+      params: { cursor, limit: 50 },
+    }),
 }
 
 // Posts
@@ -90,6 +116,25 @@ export const postsApi = {
         limit: 10,
       },
     }),
+
+  countByUser: (userId: string) =>
+    api.get<{ count: number }>(`/api/v1/users/${userId}/posts/count`),
+}
+
+// Likes
+export interface LikeSummary {
+  post_id: string
+  count: number
+  liked: boolean
+}
+
+export const likesApi = {
+  like: (postId: string) => api.post(`/api/v1/likes/${postId}`),
+
+  unlike: (postId: string) => api.delete(`/api/v1/likes/${postId}`),
+
+  batch: (postIds: string[]) =>
+    api.post<LikeSummary[]>('/api/v1/likes/batch', { post_ids: postIds }),
 }
 
 // Comments

@@ -13,17 +13,28 @@ Next.js 14 App Router web client for Snaply. TypeScript strict, talks only to `a
 
 ## Layout
 
-`app/` (routes, layout, global styles) · `components/` (nav, post-card, providers) · `lib/` (`api.ts` request wrappers, `axios.ts` client, `store.ts` Zustand store, `token.ts` localStorage helpers, `utils.ts`)
+`app/` (routes, layout, global styles) · `components/` (nav, post-card, image-uploader, user-list, providers) · `lib/` (`api.ts` request wrappers, `axios.ts` client, `store.ts` Zustand store, `token.ts` localStorage helpers, `utils.ts`)
 
 ## Pages
 
-| Route                 | Auth required | Description             |
-|------------------------|---------------|--------------------------|
-| `/login`               | —             | Email + password login   |
-| `/register`            | —             | Create account            |
-| `/feed`                | yes           | Infinite scroll feed      |
-| `/create-post`         | yes           | Caption + image URL(s)    |
-| `/profile/[username]`  | —             | Public profile + grid     |
+| Route                            | Auth required | Description                              |
+|-----------------------------------|---------------|--------------------------------------------|
+| `/login`                          | —             | Email + password login                     |
+| `/register`                       | —             | Create account                              |
+| `/feed`                           | yes           | Infinite scroll feed (own posts + follows)  |
+| `/create-post`                    | yes           | Caption + drag-and-drop image upload        |
+| `/profile/[username]`             | —             | Public profile, grid, follow/unfollow       |
+| `/profile/[username]/followers`   | —             | Resolved list of followers                  |
+| `/profile/[username]/following`   | —             | Resolved list of who they follow            |
+| `/profile/edit`                   | yes           | Update bio + avatar (own profile only)      |
+
+## Follow graph, likes & comments
+
+- Follow/unfollow, follow status, and counts all come from `relation-service` (`lib/api.ts`'s `relationsApi`), not from `user-service`'s static `follower_count`/`following_count` fields. Post count similarly comes from `postsApi.countByUser()` (post-service), not `user-service`'s static `post_count`.
+- `relation-service` and `like-service` only return user/post IDs — the frontend resolves them to display profiles via `usersApi.batch()`. `components/user-list.tsx` does this and re-sorts the resolved profiles back into the original ID order, since batch lookups don't preserve order.
+- The feed's `followed_user_ids` param is built client-side: `[currentUser.id, ...following]`, fetched from `relationsApi.following()`. Post authorship in the feed is resolved the same batch way — don't assume every post in the feed belongs to the logged-in user.
+- Likes: the feed page fetches counts + "did I like this" for every visible post in one call (`likesApi.batch()`), then passes `initialLikeCount`/`initialLiked` into each `PostCard`. `PostCard` owns the actual like/unlike mutation with optimistic local state (toggles immediately, reverts on error) and invalidates the `['likes']` query prefix on settle so the batch re-fetches fresh counts. Don't switch this to a per-card fetch — that turns one request per feed page into one per post.
+- Comments live inline in `PostCard` (expand/collapse via the Comment button), fetched/created through `commentsApi`. There's no dedicated single-post page.
 
 ## Auth flow
 

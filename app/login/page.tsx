@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { authApi } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,7 @@ type FormData = z.infer<typeof schema>
 export default function LoginPage() {
   const router = useRouter()
   const login = useAuthStore((s) => s.login)
+  const queryClient = useQueryClient()
   const [serverError, setServerError] = useState('')
 
   const {
@@ -34,6 +36,9 @@ export default function LoginPage() {
     setServerError('')
     try {
       const res = await authApi.login(data.email, data.password)
+      // Guard against any leftover cache from a previous session on this tab (e.g. a token
+      // that expired without going through the normal logout flow).
+      queryClient.clear()
       login(res.data.user, res.data.access_token, res.data.refresh_token)
       router.push('/feed')
     } catch {
