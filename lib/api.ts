@@ -59,6 +59,11 @@ export const usersApi = {
 
   updateMe: (bio: string, avatarUrl: string) =>
     api.put<AuthUser>('/api/v1/users/me', { bio, avatar_url: avatarUrl }),
+
+  search: (q: string, cursor?: string) =>
+    api.get<PaginatedResponse<PublicProfile>>('/api/v1/users/search', {
+      params: { q, cursor, limit: 8 },
+    }),
 }
 
 // Posts

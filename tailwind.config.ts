@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss'
+import colors from 'tailwindcss/colors'
 
 const config: Config = {
   content: [
@@ -9,22 +10,27 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        border: 'hsl(var(--border))',
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
+        border: colors.zinc[200],
+        background: colors.white,
+        foreground: colors.zinc[950],
         primary: {
-          DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
+          DEFAULT: colors.sky[500],
+          foreground: colors.white,
+        },
+        accent: {
+          DEFAULT: colors.rose[500],
+          foreground: colors.white,
         },
         muted: {
-          DEFAULT: 'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
+          DEFAULT: colors.zinc[100],
+          foreground: colors.zinc[500],
         },
+        ring: colors.sky[500],
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        lg: '0.75rem',
+        md: '0.625rem',
+        sm: '0.5rem',
       },
     },
   },

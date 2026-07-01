@@ -1,21 +1,20 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { PlusCircle, Trash2 } from 'lucide-react'
 import { postsApi } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { ImageUploader } from '@/components/image-uploader'
 
 const schema = z.object({
   caption: z.string().max(2200, 'Max 2200 characters'),
-  imageUrls: z.array(z.object({ url: z.string().url('Must be a valid URL') })).min(1, 'At least one image URL required'),
+  images: z.array(z.string()).min(1, 'Add at least one image').max(4, 'Up to 4 images per post'),
 })
 
 type FormData = z.infer<typeof schema>
@@ -36,14 +35,11 @@ export default function CreatePostPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { caption: '', imageUrls: [{ url: '' }] },
+    defaultValues: { caption: '', images: [] },
   })
 
-  const { fields, append, remove } = useFieldArray({ control, name: 'imageUrls' })
-
   const createPost = useMutation({
-    mutationFn: (data: FormData) =>
-      postsApi.create(data.caption, data.imageUrls.map((i) => i.url)),
+    mutationFn: (data: FormData) => postsApi.create(data.caption, data.images),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['feed'] })
       router.push('/feed')
@@ -67,43 +63,26 @@ export default function CreatePostPage() {
             <div className="space-y-1">
               <label className="text-sm font-medium">Caption</label>
               <textarea
-                className="flex min-h-[100px] w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-900"
+                className="flex min-h-[100px] w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 placeholder="Write a caption…"
                 {...register('caption')}
               />
               {errors.caption && <p className="text-xs text-red-500">{errors.caption.message}</p>}
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Image URLs</label>
-              <p className="text-xs text-zinc-400">
-                Paste direct image URLs — file upload will be available with media-service.
-              </p>
-              {fields.map((field, i) => (
-                <div key={field.id} className="flex gap-2">
-                  <Input placeholder="https://example.com/photo.jpg" {...register(`imageUrls.${i}.url`)} />
-                  {fields.length > 1 && (
-                    <Button type="button" variant="ghost" size="icon" onClick={() => remove(i)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-              {errors.imageUrls && (
-                <p className="text-xs text-red-500">
-                  {errors.imageUrls.message ?? errors.imageUrls[0]?.url?.message}
-                </p>
-              )}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => append({ url: '' })}
-                className="gap-1"
-              >
-                <PlusCircle className="h-4 w-4" />
-                Add image
-              </Button>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Photos</label>
+              <Controller
+                control={control}
+                name="images"
+                render={({ field }) => (
+                  <ImageUploader
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={errors.images?.message}
+                  />
+                )}
+              />
             </div>
 
             {createPost.isError && (

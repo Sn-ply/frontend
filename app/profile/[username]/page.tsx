@@ -3,11 +3,15 @@
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { useParams } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Loader2, Grid3x3 } from 'lucide-react'
 import { postsApi, usersApi, type Post } from '@/lib/api'
+import { useAuthStore } from '@/lib/store'
+import { Button } from '@/components/ui/button'
 
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>()
+  const currentUser = useAuthStore((s) => s.user)
 
   const { data: profile, status: profileStatus } = useQuery({
     queryKey: ['profile', username],
@@ -58,7 +62,14 @@ export default function ProfilePage() {
           )}
         </div>
         <div>
-          <h1 className="text-xl font-bold">{profile.username}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold">{profile.username}</h1>
+            {currentUser?.username === profile.username && (
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/profile/edit">Edit profile</Link>
+              </Button>
+            )}
+          </div>
           {profile.bio && <p className="mt-1 text-sm text-zinc-600">{profile.bio}</p>}
           <div className="mt-3 flex gap-6 text-sm">
             <span>

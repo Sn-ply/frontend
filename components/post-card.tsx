@@ -48,11 +48,11 @@ export function PostCard({ post, username }: PostCardProps) {
       </CardContent>
 
       <CardFooter className="gap-4 text-zinc-500">
-        <button className="flex items-center gap-1 text-sm hover:text-zinc-900 transition-colors">
+        <button className="flex items-center gap-1 text-sm transition-colors hover:text-accent">
           <Heart className="h-4 w-4" />
           <span>Like</span>
         </button>
-        <button className="flex items-center gap-1 text-sm hover:text-zinc-900 transition-colors">
+        <button className="flex items-center gap-1 text-sm transition-colors hover:text-primary">
           <MessageCircle className="h-4 w-4" />
           <span>Comment</span>
         </button>
