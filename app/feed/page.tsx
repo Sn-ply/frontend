@@ -6,11 +6,13 @@ import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { likesApi, postsApi, relationsApi, usersApi, type Post } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
+import { useMounted } from '@/lib/utils'
 import { PostCard } from '@/components/post-card'
 
 export default function FeedPage() {
   const router = useRouter()
   const { isAuthenticated, user } = useAuthStore()
+  const mounted = useMounted()
   const sentinelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -68,9 +70,13 @@ export default function FeedPage() {
     queryFn: () => likesApi.batch(postIds),
     select: (res) => new Map(res.data.map((l) => [l.post_id, { count: l.count, liked: l.liked }])),
     enabled: postIds.length > 0,
+    // Someone else's like doesn't invalidate our cache — only a refetch will see it.
+    // Override the global 30s staleTime so switching back to this tab always pulls
+    // fresh counts instead of serving what could be a stale snapshot from before.
+    staleTime: 0,
   })
 
-  if (!isAuthenticated) return null
+  if (!mounted || !isAuthenticated) return null
 
   return (
     <div className="mx-auto max-w-xl space-y-6">

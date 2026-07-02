@@ -137,6 +137,93 @@ export const likesApi = {
     api.post<LikeSummary[]>('/api/v1/likes/batch', { post_ids: postIds }),
 }
 
+// Notifications
+export interface Notification {
+  id: string
+  recipient_id: string
+  type: string
+  actor_id: string
+  actor_username: string
+  entity_id: string
+  entity_type: string
+  content_preview: string
+  read: boolean
+  grouped: boolean
+  group_count: number
+  created_at: string
+  read_at?: string
+}
+
+export const notificationsApi = {
+  list: (cursor?: string) =>
+    api.get<PaginatedResponse<Notification>>('/api/v1/notifications', {
+      params: { cursor, limit: 10 },
+    }),
+
+  markRead: (id: string) => api.put(`/api/v1/notifications/${id}/read`),
+
+  markAllRead: () => api.put('/api/v1/notifications/read'),
+
+  unreadCount: () => api.get<{ count: number }>('/api/v1/notifications/unread-count'),
+}
+
+// Messages (direct messaging)
+export interface Conversation {
+  id: string
+  participant_one_id: string
+  participant_two_id: string
+  last_message_id?: string
+  last_message_at?: string
+  created_at: string
+}
+
+export interface ConversationSummary {
+  conversation: Conversation
+  other_participant_id: string
+  other_username: string
+  last_message_preview: string
+  unread_count: number
+}
+
+export interface Message {
+  id: string
+  conversation_id: string
+  sender_id: string
+  content: string
+  media_url?: string
+  type: string
+  created_at: string
+  deleted_at?: string
+}
+
+export const conversationsApi = {
+  list: (cursor?: string) =>
+    api.get<PaginatedResponse<ConversationSummary>>('/api/v1/conversations', {
+      params: { cursor, limit: 20 },
+    }),
+
+  getOrCreate: (participantId: string) =>
+    api.post<Conversation>('/api/v1/conversations', { participant_id: participantId }),
+
+  messages: (conversationId: string, cursor?: string) =>
+    api.get<PaginatedResponse<Message>>(`/api/v1/conversations/${conversationId}/messages`, {
+      params: { cursor, limit: 30 },
+    }),
+
+  sendMessage: (conversationId: string, content: string) =>
+    api.post<Message>(`/api/v1/conversations/${conversationId}/messages`, {
+      content,
+      type: 'text',
+    }),
+
+  markRead: (conversationId: string, lastMessageId: string) =>
+    api.put(`/api/v1/conversations/${conversationId}/read`, { last_message_id: lastMessageId }),
+}
+
+export const messagesApi = {
+  delete: (id: string) => api.delete(`/api/v1/messages/${id}`),
+}
+
 // Comments
 export const commentsApi = {
   list: (postId: string, cursor?: string) =>

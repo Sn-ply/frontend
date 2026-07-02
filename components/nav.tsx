@@ -4,11 +4,12 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Camera, Home, PlusSquare, Search, LogOut, User, Loader2 } from 'lucide-react'
+import { Camera, Home, MessageCircle, PlusSquare, Search, LogOut, User, Loader2 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import { authApi, usersApi } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { Button } from './ui/button'
+import { NotificationBell } from './notification-bell'
 
 export function Nav() {
   const { user, isAuthenticated, logout, refreshToken } = useAuthStore()
@@ -21,7 +22,7 @@ export function Nav() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
 
-  // isAuthenticated resolves from localStorage the instant this module loads client-side,
+  // isAuthenticated resolves from sessionStorage the instant this module loads client-side,
   // before the first hydration pass — always false during SSR. Gate on mount so the first
   // client render matches the server-rendered (logged-out) markup, avoiding a hydration mismatch.
   const [mounted, setMounted] = useState(false)
@@ -136,6 +137,12 @@ export function Nav() {
                 <PlusSquare className={cn('h-5 w-5', pathname === '/create-post' && 'text-primary')} />
               </Link>
             </Button>
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/messages">
+                <MessageCircle className={cn('h-5 w-5', pathname.startsWith('/messages') && 'text-primary')} />
+              </Link>
+            </Button>
+            <NotificationBell />
             {user && (
               <Button variant="ghost" size="icon" asChild>
                 <Link href={`/profile/${user.username}`}>

@@ -20,13 +20,14 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
+  user: tokenStorage.getUser<AuthUser>(),
   accessToken: tokenStorage.getAccess(),
   refreshToken: tokenStorage.getRefresh(),
   isAuthenticated: !!tokenStorage.getAccess(),
 
   login: (user, accessToken, refreshToken) => {
     tokenStorage.setTokens(accessToken, refreshToken)
+    tokenStorage.setUser(user)
     set({ user, accessToken, refreshToken, isAuthenticated: true })
   },
 

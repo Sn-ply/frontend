@@ -1,16 +1,18 @@
 'use client'
 
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Loader2, Grid3x3 } from 'lucide-react'
-import { postsApi, relationsApi, usersApi, type Post } from '@/lib/api'
+import { Heart, Loader2, Grid3x3, MessageCircle } from 'lucide-react'
+import { conversationsApi, likesApi, postsApi, relationsApi, usersApi, type Post } from '@/lib/api'
 import { useAuthStore } from '@/lib/store'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>()
+  const router = useRouter()
   const currentUser = useAuthStore((s) => s.user)
   const queryClient = useQueryClient()
 
@@ -62,6 +64,15 @@ export default function ProfilePage() {
     onSuccess: invalidateFollowData,
   })
 
+  const messageMutation = useMutation({
+    mutationFn: () => conversationsApi.getOrCreate(profile!.id),
+    onSuccess: (res) => {
+      router.push(
+        `/messages/${res.data.id}?participantId=${profile!.id}&username=${encodeURIComponent(profile!.username)}`,
+      )
+    },
+  })
+
   const { data: postsData, status: postsStatus } = useInfiniteQuery({
     queryKey: ['userPosts', profile?.id],
     queryFn: ({ pageParam }) =>
@@ -72,6 +83,26 @@ export default function ProfilePage() {
   })
 
   const allPosts: Post[] = postsData?.pages.flatMap((p) => p.data.data) ?? []
+  const postIds = allPosts.map((p) => p.id)
+
+  const { data: likesByID } = useQuery({
+    queryKey: ['likes', 'batch', postIds],
+    queryFn: () => likesApi.batch(postIds),
+    select: (res) => new Map(res.data.map((l) => [l.post_id, { count: l.count, liked: l.liked }])),
+    enabled: postIds.length > 0,
+    // Someone else's like doesn't invalidate our cache — only a refetch will see it.
+    // Override the global 30s staleTime so switching back to this tab always pulls
+    // fresh counts instead of serving what could be a stale snapshot from before.
+    staleTime: 0,
+  })
+
+  const likeMutation = useMutation({
+    mutationFn: ({ postId, liked }: { postId: string; liked: boolean }) =>
+      liked ? likesApi.unlike(postId) : likesApi.like(postId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['likes'] })
+    },
+  })
 
   if (profileStatus === 'pending') {
     return (
@@ -112,25 +143,37 @@ export default function ProfilePage() {
                 <Link href="/profile/edit">Edit profile</Link>
               </Button>
             ) : (
-              currentUser &&
-              (followStatus ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={unfollowMutation.isPending}
-                  onClick={() => unfollowMutation.mutate()}
-                >
-                  Following
-                </Button>
-              ) : (
-                <Button
-                  size="sm"
-                  disabled={followMutation.isPending}
-                  onClick={() => followMutation.mutate()}
-                >
-                  Follow
-                </Button>
-              ))
+              currentUser && (
+                <>
+                  {followStatus ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={unfollowMutation.isPending}
+                      onClick={() => unfollowMutation.mutate()}
+                    >
+                      Following
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      disabled={followMutation.isPending}
+                      onClick={() => followMutation.mutate()}
+                    >
+                      Follow
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={messageMutation.isPending}
+                    onClick={() => messageMutation.mutate()}
+                  >
+                    <MessageCircle className="mr-1.5 h-4 w-4" />
+                    Message
+                  </Button>
+                </>
+              )
             )}
           </div>
           {profile.bio && <p className="mt-1 text-sm text-zinc-600">{profile.bio}</p>}
@@ -168,8 +211,10 @@ export default function ProfilePage() {
         <div className="grid grid-cols-3 gap-1">
           {allPosts.map((post) => {
             const img = post.image_urls?.[0]
+            const liked = likesByID?.get(post.id)?.liked ?? false
+            const count = likesByID?.get(post.id)?.count ?? 0
             return (
-              <div key={post.id} className="aspect-square bg-zinc-100 overflow-hidden">
+              <div key={post.id} className="group relative aspect-square bg-zinc-100 overflow-hidden">
                 {img ? (
                   <Image
                     src={img}
@@ -183,6 +228,15 @@ export default function ProfilePage() {
                     No image
                   </div>
                 )}
+                <button
+                  type="button"
+                  disabled={likeMutation.isPending}
+                  onClick={() => likeMutation.mutate({ postId: post.id, liked })}
+                  className="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-xs font-medium text-white backdrop-blur-sm"
+                >
+                  <Heart className={cn('h-3.5 w-3.5', liked && 'fill-current text-accent')} />
+                  {count}
+                </button>
               </div>
             )
           })}
