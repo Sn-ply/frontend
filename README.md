@@ -1,10 +1,27 @@
 # frontend
 
-<img width="360" height="739" alt="login" src="https://github.com/user-attachments/assets/3e2bf8af-b192-4267-89e1-1946480c209b" />
-<img width="357" height="739" alt="profile" src="https://github.com/user-attachments/assets/d5643f36-9107-45c9-863a-d09936d33cfb" />
-<img width="357" height="735" alt="create_post" src="https://github.com/user-attachments/assets/68152306-c232-4b36-8d28-771c1ca82184" />
-<img width="354" height="735" alt="chat" src="https://github.com/user-attachments/assets/0cdb5007-f011-4389-9928-4398ff53ffee" />
-
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/3e2bf8af-b192-4267-89e1-1946480c209b" width="250" alt="Login"/>
+      <br><b>Login</b>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/d5643f36-9107-45c9-863a-d09936d33cfb" width="250" alt="Profile"/>
+      <br><b>Profile</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/68152306-c232-4b36-8d28-771c1ca82184" width="250" alt="Create Post"/>
+      <br><b>Create Post</b>
+    </td>
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/0cdb5007-f011-4389-9928-4398ff53ffee" width="250" alt="Chat"/>
+      <br><b>Chat</b>
+    </td>
+  </tr>
+</table>
 Next.js 14 App Router frontend for Snaply.
 
 ## Stack
