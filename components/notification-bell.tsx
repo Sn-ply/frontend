@@ -109,7 +109,7 @@ export function NotificationBell() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full mt-1 w-80 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-md">
+        <div className="absolute right-0 top-full mt-1 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-md border border-zinc-200 bg-white shadow-md">
           {isFetching && !notifications ? (
             <div className="flex justify-center py-4">
               <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />

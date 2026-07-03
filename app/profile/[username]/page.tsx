@@ -121,7 +121,7 @@ export default function ProfilePage() {
   return (
     <div className="mx-auto max-w-3xl">
       {/* Profile header */}
-      <div className="mb-8 flex items-center gap-8">
+      <div className="mb-8 flex flex-col items-center gap-4 text-center sm:flex-row sm:items-center sm:gap-8 sm:text-left">
         <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-2xl font-bold uppercase">
           {profile.avatar_url ? (
             <Image
@@ -135,8 +135,8 @@ export default function ProfilePage() {
             profile.username[0]
           )}
         </div>
-        <div>
-          <div className="flex items-center gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-col items-center gap-3 sm:flex-row">
             <h1 className="text-xl font-bold">{profile.username}</h1>
             {isOwnProfile ? (
               <Button variant="outline" size="sm" asChild>
@@ -144,7 +144,7 @@ export default function ProfilePage() {
               </Button>
             ) : (
               currentUser && (
-                <>
+                <div className="flex flex-wrap items-center justify-center gap-2">
                   {followStatus ? (
                     <Button
                       variant="outline"
@@ -172,12 +172,12 @@ export default function ProfilePage() {
                     <MessageCircle className="mr-1.5 h-4 w-4" />
                     Message
                   </Button>
-                </>
+                </div>
               )
             )}
           </div>
           {profile.bio && <p className="mt-1 text-sm text-zinc-600">{profile.bio}</p>}
-          <div className="mt-3 flex gap-6 text-sm">
+          <div className="mt-3 flex justify-center gap-6 text-sm sm:justify-start">
             <span>
               <strong>{postCount ?? profile.post_count}</strong> posts
             </span>

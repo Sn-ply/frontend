@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Camera, Home, MessageCircle, PlusSquare, Search, LogOut, User, Loader2 } from 'lucide-react'
+import { Camera, Home, MessageCircle, PlusSquare, Search, LogOut, User, Loader2, X } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import { authApi, usersApi } from '@/lib/api'
 import { cn } from '@/lib/utils'
@@ -20,6 +20,7 @@ export function Nav() {
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
 
   // isAuthenticated resolves from sessionStorage the instant this module loads client-side,
@@ -54,7 +55,37 @@ export function Nav() {
   function goToProfile(username: string) {
     setQuery('')
     setIsSearchOpen(false)
+    setIsMobileSearchOpen(false)
     router.push(`/profile/${username}`)
+  }
+
+  function renderSearchResults() {
+    return isFetching ? (
+      <div className="flex justify-center py-3">
+        <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+      </div>
+    ) : results && results.length > 0 ? (
+      results.map((r) => (
+        <button
+          key={r.id}
+          type="button"
+          onClick={() => goToProfile(r.username)}
+          className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-zinc-50"
+        >
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-200 text-xs font-medium uppercase">
+            {r.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element -- may be a local base64 data URL
+              <img src={r.avatar_url} alt={r.username} className="h-full w-full object-cover" />
+            ) : (
+              r.username[0]
+            )}
+          </div>
+          {r.username}
+        </button>
+      ))
+    ) : (
+      <p className="px-3 py-2 text-sm text-zinc-400">No users found</p>
+    )
   }
 
   async function handleLogout() {
@@ -70,99 +101,126 @@ export function Nav() {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-4xl items-center justify-between px-4">
-        {/* Logo */}
-        <Link href="/feed" className="flex items-center gap-2 font-bold text-lg">
-          <Camera className="h-5 w-5 text-primary" />
-          Snaply
-        </Link>
+      <div className="mx-auto flex h-14 max-w-4xl items-center justify-between gap-2 px-3 sm:px-4">
+        {isMobileSearchOpen ? (
+          <div className="flex flex-1 items-center gap-2">
+            <div className="relative flex-1" ref={searchRef}>
+              <div className="flex items-center gap-2 rounded-md border border-zinc-200 px-3 py-1.5 text-sm focus-within:border-primary/40">
+                <Search className="h-4 w-4 shrink-0 text-zinc-400" />
+                <input
+                  autoFocus
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  onFocus={() => setIsSearchOpen(true)}
+                  placeholder="Search…"
+                  className="w-full bg-transparent text-sm outline-none placeholder:text-zinc-400"
+                />
+              </div>
 
-        {/* Search */}
-        {showAuthedUI && (
-          <div ref={searchRef} className="relative hidden sm:block w-56">
-            <div className="flex items-center gap-2 rounded-md border border-zinc-200 px-3 py-1.5 text-sm focus-within:border-primary/40">
-              <Search className="h-4 w-4 shrink-0 text-zinc-400" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onFocus={() => setIsSearchOpen(true)}
-                placeholder="Search…"
-                className="w-full bg-transparent text-sm outline-none placeholder:text-zinc-400"
-              />
+              {isSearchOpen && debouncedQuery && (
+                <div className="absolute left-0 right-0 top-full mt-1 max-h-[70vh] overflow-y-auto rounded-md border border-zinc-200 bg-white shadow-md">
+                  {renderSearchResults()}
+                </div>
+              )}
             </div>
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileSearchOpen(false)
+                setIsSearchOpen(false)
+                setQuery('')
+              }}
+              className="shrink-0 text-sm text-zinc-500"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Logo */}
+            <Link href="/feed" className="flex shrink-0 items-center gap-2 font-bold text-lg">
+              <Camera className="h-5 w-5 text-primary" />
+              <span className="hidden sm:inline">Snaply</span>
+            </Link>
 
-            {isSearchOpen && debouncedQuery && (
-              <div className="absolute left-0 right-0 top-full mt-1 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-md">
-                {isFetching ? (
-                  <div className="flex justify-center py-3">
-                    <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+            {/* Search (desktop) */}
+            {showAuthedUI && (
+              <div ref={searchRef} className="relative hidden sm:block w-56">
+                <div className="flex items-center gap-2 rounded-md border border-zinc-200 px-3 py-1.5 text-sm focus-within:border-primary/40">
+                  <Search className="h-4 w-4 shrink-0 text-zinc-400" />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onFocus={() => setIsSearchOpen(true)}
+                    placeholder="Search…"
+                    className="w-full bg-transparent text-sm outline-none placeholder:text-zinc-400"
+                  />
+                </div>
+
+                {isSearchOpen && debouncedQuery && (
+                  <div className="absolute left-0 right-0 top-full mt-1 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-md">
+                    {renderSearchResults()}
                   </div>
-                ) : results && results.length > 0 ? (
-                  results.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      onClick={() => goToProfile(r.username)}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-zinc-50"
-                    >
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-200 text-xs font-medium uppercase">
-                        {r.avatar_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element -- may be a local base64 data URL
-                          <img src={r.avatar_url} alt={r.username} className="h-full w-full object-cover" />
-                        ) : (
-                          r.username[0]
-                        )}
-                      </div>
-                      {r.username}
-                    </button>
-                  ))
-                ) : (
-                  <p className="px-3 py-2 text-sm text-zinc-400">No users found</p>
                 )}
               </div>
             )}
-          </div>
-        )}
 
-        {/* Actions */}
-        {showAuthedUI ? (
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/feed">
-                <Home className={cn('h-5 w-5', pathname === '/feed' && 'text-primary')} />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/create-post">
-                <PlusSquare className={cn('h-5 w-5', pathname === '/create-post' && 'text-primary')} />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="icon" asChild>
-              <Link href="/messages">
-                <MessageCircle className={cn('h-5 w-5', pathname.startsWith('/messages') && 'text-primary')} />
-              </Link>
-            </Button>
-            <NotificationBell />
-            {user && (
-              <Button variant="ghost" size="icon" asChild>
-                <Link href={`/profile/${user.username}`}>
-                  <User className={cn('h-5 w-5', pathname === `/profile/${user.username}` && 'text-primary')} />
-                </Link>
-              </Button>
+            {/* Actions */}
+            {showAuthedUI ? (
+              <div className="flex items-center gap-0.5 sm:gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 sm:hidden"
+                  onClick={() => setIsMobileSearchOpen(true)}
+                  aria-label="Search"
+                >
+                  <Search className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" asChild>
+                  <Link href="/feed">
+                    <Home className={cn('h-5 w-5', pathname === '/feed' && 'text-primary')} />
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" asChild>
+                  <Link href="/create-post">
+                    <PlusSquare className={cn('h-5 w-5', pathname === '/create-post' && 'text-primary')} />
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" asChild>
+                  <Link href="/messages">
+                    <MessageCircle className={cn('h-5 w-5', pathname.startsWith('/messages') && 'text-primary')} />
+                  </Link>
+                </Button>
+                <NotificationBell />
+                {user && (
+                  <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10" asChild>
+                    <Link href={`/profile/${user.username}`}>
+                      <User className={cn('h-5 w-5', pathname === `/profile/${user.username}` && 'text-primary')} />
+                    </Link>
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-9 w-9 sm:h-10 sm:w-10"
+                  onClick={handleLogout}
+                  title="Logout"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/login">Log in</Link>
+                </Button>
+                <Button size="sm" asChild>
+                  <Link href="/register">Sign up</Link>
+                </Button>
+              </div>
             )}
-            <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/login">Log in</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/register">Sign up</Link>
-            </Button>
-          </div>
+          </>
         )}
       </div>
     </nav>
